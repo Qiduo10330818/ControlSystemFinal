@@ -5,15 +5,15 @@
 %All rights reserved.
 %----------------------------------------------------------------------------------
 
-clear;clc;
+clear;clc;close all;
 %% initial states setting
-qi =[0 6 0.8 0.8 0];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
+qi =[0 11 0.8 0.8 1.05];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
 % x z l1 l2 theta
 ui =[0 0 0 0 0];          %I.C. of generalized velocities:  ui = [x_dot(to) z_dot(to) l1_dot(to)];
 xmi  =[0 0 0];        %I.C. of AMEID states: xmi = [
 lenq=length(qi);
 %% PID parameters setting-----The digital P-controller is implemented using the so-called velocity form.
-Kp=100;
+Kp=10;
 %% Parameters setting
 %% 1-D Lander parameters
 mb = 10;               %(kg)- Mass of the lander body 
@@ -67,29 +67,40 @@ q2n = zeros(N+1,2);        %Footpad Mass coordinates
 u2n = zeros(N+1,2);        %Footpad Mass velocities
 
 F_impactn = zeros(N+1,1);  %Footpad impact force
+F_impactn_1 = zeros(N+1,1);
+F_impactn_2 = zeros(N+1,1);
 %% Definition of AMEID states
-xm = zeros(N+1,3);
+%xm = zeros(N+1,3);
+xml = zeros(N+1,3);
+xmr = zeros(N+1,3);
 %Input
-V = zeros(N+1,1);
-Vr = zeros(N+1,1);
+%V = zeros(N+1,1);
 Vl = zeros(N+1,1);
+Vr = zeros(N+1,1);
 %PID error matrix
 ek = zeros(N+2,1);
+ekr = zeros(N+2,1);
+ekl = zeros(N+2,1);
+
 %AMEID Force matrix
-Fmeidr = zeros(N+1,1);
 Fmeidl = zeros(N+1,1);
+Fmeidr = zeros(N+1,1);
 %setting initial condition
 qn(1,:) = qi;              
-un(1,:) = ui;              
+un(1,:) = ui;
+xml(1,:) = xmi;              
 xmr(1,:) = xmi;
-xml(1,:) = xmi;
-Launch_r = false;
 Launch_l = false;
-iarf = 0;
-ialf = 0;
+Launch_r = false;
+ial = 0;
+iar = 0;
 
-num = 0;
-count=0;
+%num = 0; % L_stroke constraint
+num_l = 0;
+num_r = 0;
+%count=0; % launch time
+count_l=0;
+count_r=0;
 tic;
 
 for i = 1:1:N
@@ -114,8 +125,14 @@ u1n(i,:) = [ xb_dotf ,...
 %}
 q1n(i,:) = [xbf - cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) - l1f*cos(alpha)*cos(thetaf) + l1f*sin(alpha)*sin(thetaf);...
  zbf + cos(thetaf)*(H/2 - S*sin(alpha)) - sin(thetaf)*(W/2 + S*cos(alpha)) - l1f*cos(alpha)*sin(thetaf) - l1f*sin(alpha)*cos(thetaf)];
+
 q2n(i,:) = [xbf + cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) + l2f*cos(alpha)*cos(thetaf) + l2f*sin(alpha)*sin(thetaf);...
  zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)];
+
+u1n(i,:) = [xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf);...
+ zb_dotf - theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) - l1_dotf*cos(alpha)*sin(thetaf) - l1_dotf*sin(alpha)*cos(thetaf) - l1f*theta_dotf*cos(alpha)*cos(thetaf) + l1f*theta_dotf*sin(alpha)*sin(thetaf)];
+u2n(i,:) = [xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf);...
+ zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)];
 
 %{
 gNb = qn(i,2);
@@ -148,6 +165,7 @@ hn = [
                                                                                                                                                                                            - (k*(2*l2f - 2*l2ss))/2 - g*m2*(cos(alpha)*sin(thetaf) - sin(alpha)*cos(thetaf));...
  g*m1*(cos(thetaf)*(W/2 + S*cos(alpha)) + sin(thetaf)*(H/2 - S*sin(alpha)) + l1f*cos(alpha)*cos(thetaf) - l1f*sin(alpha)*sin(thetaf)) - g*m2*(cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) + l2f*cos(alpha)*cos(thetaf) + l2f*sin(alpha)*sin(thetaf))];
 
+
 %{
 LambdaN1 = kf*gN1*min(sign(gN1),0) - cf*rN1*min(sign(rN1),0)*min(sign(gN1),0);  
 LambdaNb = kf*gNb*min(sign(gNb),0) - 10*cf*rNb*min(sign(rNb),0)*min(sign(gNb),0);  
@@ -163,8 +181,8 @@ P = WN*LambdaN+WT*LambdaT;
 %}
 P = [
  
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  uk*sign(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf))*(kf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) - cf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*min(-sign(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf))) - uk*sign(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf))*(kf*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - cf*min(sign(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf))) - uk*sign(xb_dotf)*(kf*zbf*min(sign(zbf), 0) - 10*cf*zb_dotf*min(sign(zb_dotf), 0)*min(sign(zbf), 0));...
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       kf*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - kf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) + kf*zbf*min(sign(zbf), 0) + cf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*min(-sign(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)) - cf*min(sign(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)) - 10*cf*zb_dotf*min(sign(zb_dotf), 0)*min(sign(zbf), 0);...
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     uk*sign(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf))*(kf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) - cf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*min(-sign(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf))) - uk*sign(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf))*(kf*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - cf*min(sign(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf))) - uk*sign(xb_dotf)*(kf*zbf*min(sign(zbf), 0) - cf*zb_dotf*min(sign(zb_dotf), 0)*min(sign(zbf), 0));...
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          kf*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - kf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) + kf*zbf*min(sign(zbf), 0) + cf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*min(-sign(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)) - cf*min(sign(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)) - cf*zb_dotf*min(sign(zb_dotf), 0)*min(sign(zbf), 0);...
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 (kf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) - cf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*min(-sign(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)))*(cos(alpha)*sin(thetaf) + sin(alpha)*cos(thetaf)) + uk*sign(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf))*(kf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) - cf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*min(-sign(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)))*(sin(alpha)*sin(thetaf) - cos(alpha)*cos(thetaf));...
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       (kf*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - cf*min(sign(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)))*(cos(alpha)*sin(thetaf) - sin(alpha)*cos(thetaf)) - uk*sign(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf))*(kf*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - cf*min(sign(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)))*(sin(alpha)*sin(thetaf) + cos(alpha)*cos(thetaf));...
  (kf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) - cf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*min(-sign(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)))*(cos(thetaf)*(W/2 + S*cos(alpha)) + sin(thetaf)*(H/2 - S*sin(alpha)) + l1f*cos(alpha)*cos(thetaf) - l1f*sin(alpha)*sin(thetaf)) + (kf*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - cf*min(sign(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)))*(cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) + l2f*cos(alpha)*cos(thetaf) + l2f*sin(alpha)*sin(thetaf)) + uk*sign(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf))*(kf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) - cf*min(-sign(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) - zbf + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)), 0)*min(-sign(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)))*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf)) + uk*sign(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf))*(kf*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - cf*min(sign(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)), 0)*min(sign(zbf + cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)), 0)*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)))*(cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf))];
@@ -175,9 +193,8 @@ if Launch_r == false
    if xmr(i,2)<0
       xmr(i,2)=0;
    end
-   
    xmr(i+1,:) = ((Aam*dt+eye(3))*(xmr(i,:))')';
-   iarf = 0;
+   iar = 0;
    %{
    Fx=0;
    Fz=0;
@@ -185,18 +202,19 @@ if Launch_r == false
    %}
    
 elseif Launch_r == true
-   count = count + 1;
+   count_r = count_r + 1;
    %%%% Control Law %%%%
-   ek(i+2) = -(0-un(i,5));
-   Vr(i+1) = Vr(i) + Kp*(ek(i+2)-ek(i+1));
+   %ek(i+2) = un(i,2);
+   ekr(i+2) = max(un(i,5),0);
+   Vr(i+1) = Vr(i) + Kp*(ekr(i+2)-ekr(i+1));
    %%%%
   
    if xmr(i,2)<0
       xmr(i,2)=0;
    end
    
-   xmr(i+1,:) = ((Aam*dt+eye(3))*(xmr(i,:))'+Bam*dt*V(i+1))';
-   iarf = xmr(i+1, 1);
+   xmr(i+1,:) = ((Aam*dt+eye(3))*(xmr(i,:))'+Bam*dt*Vr(i+1))';
+   iar = xmr(i+1, 1);
    %{
    Fx=0;
    Fz=-Cam*(xmr(i,:))';
@@ -209,25 +227,26 @@ if Launch_l == false
    end
    
    xml(i+1,:) = ((Aam*dt+eye(3))*(xml(i,:))')';
-   iarl = 0;
+   ial = 0;
    %{
    Fx=0;
    Fz=0;
    Fl=0;
    %}
 elseif Launch_l == true
-   count = count + 1;
+   count_l = count_l + 1;
    %%%% Control Law %%%%
-   ek(i+2) = -(0-un(i,5));
-   Vl(i+1) = Vl(i) + Kp*(ek(i+2)-ek(i+1));
+   %ek(i+2) = un(i,2);
+   ekl(i+2) = max(-un(i,5),0);
+   Vl(i+1) = Vl(i) + Kp*(ekl(i+2)-ekl(i+1));
    %%%%
   
    if xml(i,2)<0
       xml(i,2)=0;
    end
    
-   xml(i+1,:) = ((Aam*dt+eye(3))*(xml(i,:))'+Bam*dt*V(i+1))';
-   iarl = xml(i+1, 1);
+   xml(i+1,:) = ((Aam*dt+eye(3))*(xml(i,:))'+Bam*dt*Vl(i+1))';
+   ial = xml(i+1, 1);
    %{
    Fx=0;
    Fz=-Cam*(xml(i,:))';
@@ -235,31 +254,31 @@ elseif Launch_l == true
    %}
 end
 %-------L_stroke constraint------
-if (xmr(i,2) >= L_stroke) || (num >= 1)
+if (xmr(i,2) >= L_stroke) || (num_r >= 1)
    xmr(i,2) = L_stroke;
    xmr(i+1,3) = 0;
    Launch_r = false;
-   num = num + 1;
+   num_r = num_r + 1;
 end
-if (xml(i,2) >= L_stroke) || (num >= 1)
+if (xml(i,2) >= L_stroke) || (num_l >= 1)
    xml(i,2) = L_stroke;
    xml(i+1,3) = 0;
    Launch_l = false;
-   num = num + 1;
+   num_l = num_l + 1;
 end
 %--------------------------------
 %hu = [Fx;Fz;Fl];
-hr = [  iarf*kF*sin(thetaf);...
-       -iarf*kF*cos(thetaf);...
+hr = [  iar*kF*sin(thetaf);...
+       -iar*kF*cos(thetaf);...
                           0;...
                           0;...
- - W - cos(alpha)*(S + l1f)];
+ -iar*kF*(W + cos(alpha)*(S + l1f))];
 
-hl = [ialf*kF*sin(thetaf);...
-     -ialf*kF*cos(thetaf);...
+hl = [ial*kF*sin(thetaf);...
+     -ial*kF*cos(thetaf);...
                         0;...
                         0;...
- W + cos(alpha)*(S + l2f)];
+ ial*kF*(W + cos(alpha)*(S + l2f))];
 
 %---Euler's method (Solve DAE)---
 un(i+1,:) = un(i,:) + (Mn\(hn+P+hr+hl)*dt)';
@@ -277,36 +296,49 @@ zb_dotf = un(i+1,2);
 l1_dotf = un(i+1,3);
 l2_dotf = un(i+1,4);
 theta_dotf = un(i+1,5);
-           
+%{           
 u1n(i+1,:) = [ xb_dotf ,...
              zb_dotf - l1_dotf];
-u1n(i+1,:) = [xb_dotf + sin(thetaf)*(W/2 + S*cos(alpha))*theta_dotf - cos(thetaf)*cos(alpha)*l1_dotf + sin(thetaf)*sin(alpha)*l1_dotf - cos(thetaf)*(H/2 - S*sin(alpha))*theta_dotf + cos(thetaf)*sin(alpha)*l1f*theta_dotf + sin(thetaf)*cos(alpha)*l1f*theta_dotf;...
- zb_dotf - sin(thetaf)*(H/2 - S*sin(alpha))*theta_dotf - cos(thetaf)*sin(alpha)*l1_dotf - sin(thetaf)*cos(alpha)*l1_dotf - cos(thetaf)*(W/2 + S*cos(alpha))*theta_dotf - cos(thetaf)*cos(alpha)*l1_dotf*theta_dotf + sin(thetaf)*sin(alpha)*l1f*theta_dotf];
-u2n(i+1,:) = [xb_dotf - sin(thetaf)*(W/2 + S*cos(alpha))*theta_dotf + cos(thetaf)*cos(alpha)*l2_dotf + sin(thetaf)*sin(alpha)*l2_dotf - cos(thetaf)*(H/2 - S*sin(alpha))*theta_dotf + cos(thetaf)*sin(alpha)*l2f*theta_dotf - sin(thetaf)*cos(alpha)*l2f*theta_dotf;...
- zb_dotf - sin(thetaf)*(H/2 - S*sin(alpha))*theta_dotf - cos(thetaf)*sin(alpha)*l2_dotf + sin(thetaf)*cos(alpha)*l2_dotf + cos(thetaf)*(W/2 + S*cos(alpha))*theta_dotf + cos(thetaf)*cos(alpha)*l2f*theta_dotf + sin(thetaf)*sin(alpha)*l2f*theta_dotf];
+%}
 
-%-----Does Lander contact to the ground?---------           
-if (u1n(i+1,2)*u1n(i,2)<0)
+
+u1n(i+1,:) = [xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf);...
+ zb_dotf - theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) - l1_dotf*cos(alpha)*sin(thetaf) - l1_dotf*sin(alpha)*cos(thetaf) - l1f*theta_dotf*cos(alpha)*cos(thetaf) + l1f*theta_dotf*sin(alpha)*sin(thetaf)];
+u2n(i+1,:) = [xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf);...
+ zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)];
+
+%-----Does Lander contact to the ground?---------    
+%if (u1n(i+1,2)*u1n(i,2)<0)
+if (un(i+1,2)*un(i,2)<0) && (qn(i+1, 5)>0)
    if (xmr(i,2)<L_stroke)
       Launch_r = true;
+      fprintf("Launch r\n");
    else
       Launch_r = false;
    end
 end
 
-if (u2n(i+1,2)*u2n(i,2)<0)
+%if (u2n(i+1,2)*u2n(i,2)<0)
+if (un(i+1,2)*un(i,2)<0) && (qn(i+1, 5)<0)
    if (xml(i,2)<L_stroke)
       Launch_l = true;
+      fprintf("Launch l\n");
    else
       Launch_l = false;
    end
 end
+
+
 F_impactn(i) = -k*(qn(i,3)-lss)-c*un(i,3);
+F_impactn_1(i) = -k*(qn(i,3)-l1ss)-c*un(i,3);
+F_impactn_2(i) = -k*(qn(i,4)-l2ss)-c*un(i,4);
 
 end
 xmr(end,2) = xmr(end-1,2);
 xml(end,2) = xml(end-1,2);
-Fmax=max(F_impactn);
+%Fmax=max(F_impactn);
+Fmax_1=max(F_impactn_1);
+Fmax_2=max(F_impactn_2);
 
 toc;
 
@@ -327,6 +359,7 @@ plot(t,qn(:,2)); %zb(t)
 hold on;
 %plot(t,qn(:,1)); %xb(t)
 plot(t,qn(:,3)); %l1(t)
+plot(t,qn(:,4)); %l2(t)
 hold off;
 L0=legend('$z_{b}$(t) [m]','$l_{1}$(t) [m]','Interpreter','Latex');
 set(L0,'FontSize',10);
@@ -340,13 +373,16 @@ title({'2D Lander Free Fall Landing';['xb(t0)=',num2str(qn(1,1)),'[m],','zb(t0)=
 %set(findall(gcf,'type','line'),'linewidth',2);
 %kfig(2)=figure;
 subplot(3,1,2);
-plot(t,F_impactn);hold on;
+%plot(t,F_impactn);hold on;
+plot(t,F_impactn_1);hold on;
+plot(t,F_impactn_2);
 L0=legend('F [N](Impact Force on The Footpad)','Interpreter','Latex');
 set(L0,'FontSize',10);
 grid on;
 xlabel('Time [s]','Interpreter','Latex');
 ylabel('Impact Force','Interpreter','Latex');
-title(['Fmax:',num2str(Fmax),'[N]'],'Interpreter','Latex');
+%title(['Fmax:',num2str(Fmax),'[N]'],'Interpreter','Latex');
+title(['Fmax:',num2str(max(Fmax_1, Fmax_2)),'[N]'],'Interpreter','Latex');
 subplot(3,1,3);
 plot(t,un(:,2)); %zb_dot(t)
 L0=legend('$\dot{zb}$(t) [m/s]','Interpreter','Latex','Location','Southeast');
@@ -359,8 +395,8 @@ set(findall(gcf,'type','line'),'linewidth',2);
 
 figure(2);
 %stairs(t,V);hold on;
-stairs(t,Vr);hold on;
-stairs(t,Vl);
+stairs(t,Vl);hold on;
+stairs(t,Vr);
 L0=legend('$V$(t) [V]','Interpreter','Latex');
 set(L0,'FontSize',10);
 grid on;
@@ -372,8 +408,8 @@ set(findall(gcf,'type','stair'),'linewidth',2);
 
 figure(3);
 %plot(t,xm(:,2));
-plot(t,xmr(:,2));hold on;
-plot(t,xml(:,2));
+plot(t,xml(:,2));hold on; % xp, extension of leg
+plot(t,xmr(:,2));
 L0=legend('$xp$(t) [m]','Interpreter','Latex');
 set(L0,'FontSize',10);
 grid on;
