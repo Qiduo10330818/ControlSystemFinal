@@ -50,8 +50,8 @@ mp = 0.2;      %(kg)- Mass of VCM
 mc = mp + mb;  %(kg)- Mass of mp+mb
 k = 7000;      %(N/m)- Buffer spring stiffness
 c = k/20;      %(N.s/m)- Buffer damper coefficient
-l1ss = 0.8;     %(m)- Length of the buffer
-l2ss = 0.8;
+lss = 0.8;     %(m)- Length of the buffer
+lss = 0.8;
 W = 1;         %(m)- Width of the body
 H = 1;         %(m)- Height of the body
 R = sqrt(2);
@@ -68,7 +68,7 @@ kf = 7.5e4;    %(N/m)-Ground spring stiffness
 cf = 130;      %(N.s/m)-Ground damper coefficient
 uk = 0.3;      %kinetic friction coefficient
 %}
-syms mb mp m1 m2 Ig mc k c lss l1ss l2ss g
+syms mb mp m1 m2 Ig mc k c lss g
 syms W H R gamma alpha S
 syms L_stroke md kf cf uk
 %% Generalized coordinates q=[xb,zb,l1]'
@@ -114,12 +114,12 @@ u2f = subs(u2, {diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff
 Tbf = ke(mc,ub);
 T1f = ke(m1,u1f);
 T2f = ke(m2,u2f);
-Tr = rke(Ig, theta_dotf);
+Tr = spe(Ig, theta_dotf);
 Tf = Tbf+T1f+T2f+Tr;
 % Potential Energy
-Vf = gpe(mc,g,qb(2)) + gpe(m1,g,q1f(2)) + gpe(m2, g, q2f(2)) + spe(k,l1f-l1ss) + spe(k,l2f-l2ss);
+Vf = gpe(mc,g,qb(2)) + gpe(m1,g,q1f(2)) + gpe(m2,g,q2f(2)) + spe(k,l1f-lss) + spe(k,l2f-lss);
 % Dissipative Energy
-Wf = spe(c,l1_dotf) + spe(c, l2_dotf);
+Wf = spe(c,l1_dotf) + spe(c,l2_dotf);
 %Lagrangian
 Lf = Tf-Vf;
 %M
@@ -279,14 +279,14 @@ Meq = matlabFunction(Veq,'vars', {'t','Y'});
 Tf=10;  %simulation time
 tspan=[0 Tf]; %simulation horizon
 dt=.0005; %time step
-x0=[l1ss 0 l2ss 0 6 0 6 0 0 0];  %initial condition
+x0=[lss 0 lss 0 6 0 6 0 0 0];  %initial condition
 % l1 l1_dot l2 l2_dot xb xb_dot zb zb_dot theta theta_dot
 options = odeset('Mass',eye(6),'RelTol',1e-4,'AbsTol',[1e-5 1e-5 1e-5 1e-5 1e-5 1e-5]);
 [t,sol] = ode45(Meq,tspan,x0); %use ode45,ode23,ode15s solver to solve the equation
 t0 = (0:dt:Tf)';
 sol0 = interp1(t,sol,t0,'makima');   %interpolation for equal dt
 
-F_impact= -k.*(sol0(:,1)-l1ss)-k.*(sol0(:,3)-l2ss)-c.*(sol0(:,2))-c.*(sol0(:,4));
+F_impact= -k.*(sol0(:,1)-lss)-k.*(sol0(:,3)-lss)-c.*(sol0(:,2))-c.*(sol0(:,4));
 Fmax=max(F_impact);
 
 %% Plot non-linear result
