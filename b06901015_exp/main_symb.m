@@ -29,11 +29,11 @@ clear;clc;close all;
 %% variables
 syms xbf zbf l1f l2f thetaf
 syms xb_dotf zb_dotf l1_dotf l2_dotf theta_dotf
-syms q1f u1f q2f u2f
+syms q1f u1f
 %replaced by
 syms xb(t) zb(t) l1(t) l2(t) theta(t)
 syms xb_dot(t) zb_dot(t) l1_dot(t) l2_dot(t) theta_dot(t)
-syms q1(t) u1(t) q2(t) u2(t)
+syms q1(t) u1(t)
 
 xb_dot(t) = diff(xb,t);
 zb_dot(t) = diff(zb,t);
@@ -74,7 +74,7 @@ syms L_stroke md kf cf uk
 %% Generalized coordinates q=[xb,zb,l1]'
 q = [xbf;zbf;l1f;l2f;thetaf];
 %% q(t)
-qt = subs(q,{xbf,zbf,l1f,l2f,thetaf},{xb,zb,l1,l2,theta}); % f(t)
+qt = subs(q,{xbf,zbf,l1f,l2f,thetaf},{xb,zb,l1,l2,theta});
 
 %%%% syms a b
 %%%% subs(a + b, a, 4)
@@ -82,7 +82,7 @@ qt = subs(q,{xbf,zbf,l1f,l2f,thetaf},{xb,zb,l1,l2,theta}); % f(t)
 %% Generalized velocities u=dq/dt=[xb_dot,zb_dot,l1_dot]'
 u = [xb_dotf;zb_dotf;l1_dotf;l2_dotf;theta_dotf];
 %% u(t)
-ut = subs(u,{xb_dotf,zb_dotf,l1_dotf,l2_dotf,theta_dotf},{xb_dot,zb_dot,l1_dot,l2_dot,theta_dot}); % f(t)
+ut = subs(u,{xb_dotf,zb_dotf,l1_dotf,l2_dotf,theta_dotf},{xb_dot,zb_dot,l1_dot,l2_dot,theta_dot});
 
 lenq = length(q);
 %vectors
@@ -102,17 +102,14 @@ ub = [xb_dotf;zb_dotf];
 q1f = qb - ra1 - ql1; %xbf, zbf, thetaf, l1f
 q2f = qb - ra2 - ql2;
 
-q1 = subs(q1f, {xbf, zbf, l1f, l2f, thetaf}, {xb, zb, l1, l2, theta}); % f(t)
-q2 = subs(q2f, {xbf, zbf, l1f, l2f, thetaf}, {xb, zb, l1, l2, theta}); % f(t)
-u1 = diff(q1,t); % f(t)
-u2 = diff(q2,t); % f(t)
+q1 = subs(q1f, {xbf, zbf, l1f, l2f, thetaf}, {xb, zb, l1, l2, theta});
+q2 = subs(q2f, {xbf, zbf, l1f, l2f, thetaf}, {xb, zb, l1, l2, theta});
+u1 = diff(q1,t);
+u2 = diff(q2,t);
 
-u1f = subs(u1, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xbf, zbf, l1f, l2f, thetaf, xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf});
-u2f = subs(u2, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xbf, zbf, l1f, l2f, thetaf, xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf});
-q1f
-q2f
-u1f
-u2f
+u1f = subs(u1, {diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf});
+u2f = subs(u2, {diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf});
+
 % Kinetic Energy
 Tbf = ke(mc,ub);
 T1f = ke(m1,u1f);
@@ -128,7 +125,6 @@ Lf = Tf-Vf;
 %M
 Mf1 = [diff(Tf,u(1));diff(Tf,u(2));diff(Tf,u(3));diff(Tf,u(4));diff(Tf,u(5))];
 Mf = [diff(Mf1,u(1)) diff(Mf1,u(2)) diff(Mf1,u(3)) diff(Mf1,u(4)) diff(Mf1,u(5))];
-Mf
 %M^(-1)
 Mf_inv = inv(Mf);
 Mf_invt=subs(Mf_inv,{xbf,zbf,l1f,l2f,thetaf,xb_dotf,zb_dotf,l1_dotf,l2_dotf,theta_dotf},{xb,zb,l1,l2,theta,xb_dot,zb_dot,l1_dot,l2_dot,theta_dot});
@@ -141,7 +137,6 @@ h2 = [diff(Vf,q(1));diff(Vf,q(2));diff(Vf,q(3));diff(Vf,q(4));diff(Vf,q(5))];   
 h3 = [diff(h0,u(1)) diff(h0,u(2)) diff(h0,u(3)) diff(h0,u(4)) diff(h0,u(5))]*u;
 Qd = [diff(Wf,u(1));diff(Wf,u(2));diff(Wf,u(3));diff(Wf,q(4));diff(Wf,q(5))];
 hf=-Qd+h1-h2-h3;
-hf
 ht=subs(hf,{xbf,zbf,l1f,l2f,thetaf,xb_dotf,zb_dotf,l1_dotf,l2_dotf,theta_dotf},{xb,zb,l1,l2,theta,xb_dot,zb_dot,l1_dot,l2_dot,theta_dot});
 ht=simplify(ht);
 %------------------------------------------   
@@ -202,7 +197,7 @@ LambdaT = [LambdaT1;LambdaT2;LambdaTb];
 WN = [diff(gN,q(1));diff(gN,q(2));diff(gN,q(3));diff(gN,q(4));diff(gN,q(5))];
 WT = [diff(rT,u(1));diff(rT,u(2));diff(rT,u(3));diff(rT,u(4));diff(rT,u(5))];
 P = WN*LambdaN+WT*LambdaT;
-P
+
 Pt=subs(P,{xbf,zbf,l1f,l2f,thetaf,xb_dotf,zb_dotf,l1_dotf,l2_dotf,theta_dotf},{xb,zb,l1,l2,theta,xb_dot,zb_dot,l1_dot,l2_dot,theta_dot});
 
 %--------------------------------
@@ -333,7 +328,6 @@ ylabel('Velocity Response [m/s]','Interpreter','Latex');
 set(findall(gcf,'type','line'),'linewidth',2);
 
 %}
-%{
 Mf = subs(Mf, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xbf, zbf, l1f, l2f, thetaf, xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf})
 hf = subs(hf, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xbf, zbf, l1f, l2f, thetaf, xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf})
 hr = subs(hr, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xbf, zbf, l1f, l2f, thetaf, xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf})
@@ -343,4 +337,3 @@ q1 = subs(q1, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t
 q2 = subs(q2, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xbf, zbf, l1f, l2f, thetaf, xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf})
 u1 = subs(u1, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xbf, zbf, l1f, l2f, thetaf, xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf})
 u2 = subs(u2, {xb(t), zb(t), l1(t), l2(t), theta(t), diff(xb(t),t), diff(zb(t),t), diff(l1(t),t), diff(l2(t),t), diff(theta(t), t)}, {xbf, zbf, l1f, l2f, thetaf, xb_dotf, zb_dotf, l1_dotf, l2_dotf, theta_dotf})
-%}
