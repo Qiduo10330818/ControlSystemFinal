@@ -114,11 +114,7 @@ q2f
 u1f
 u2f
 % Kinetic Energy
-Tbf = ke(mc,ub);
-T1f = ke(m1,u1f);
-T2f = ke(m2,u2f);
-Tr = spe(Ig, theta_dotf);
-Tf = Tbf+T1f+T2f+Tr;
+Tf = ke(mc,ub)+ke(m1,u1f)+ke(m2,u2f)+ke(Ig, theta_dotf);
 % Potential Energy
 Vf = gpe(mc,g,qb(2)) + gpe(m1,g,q1f(2)) + gpe(m2,g,q2f(2)) + spe(k,l1f-lss) + spe(k,l2f-lss);
 % Dissipative Energy
@@ -139,7 +135,7 @@ h1 = [diff(Tf,q(1));diff(Tf,q(2));diff(Tf,q(3));diff(Tf,q(4));diff(Tf,q(5))];   
 h2 = [diff(Vf,q(1));diff(Vf,q(2));diff(Vf,q(3));diff(Vf,q(4));diff(Vf,q(5))];   %(dVf/dq)'
 %h3 = [diff(h0,q(1)) diff(h0,q(2)) diff(h0,q(3)) diff(h0,q(4)) diff(h0,q(5))]*u; %(ddTf/dudq)'*u
 h3 = [diff(h0,u(1)) diff(h0,u(2)) diff(h0,u(3)) diff(h0,u(4)) diff(h0,u(5))]*u;
-Qd = [diff(Wf,u(1));diff(Wf,u(2));diff(Wf,u(3));diff(Wf,q(4));diff(Wf,q(5))];
+Qd = [diff(Wf,u(1));diff(Wf,u(2));diff(Wf,u(3));diff(Wf,u(4));diff(Wf,u(5))];
 hf=-Qd+h1-h2-h3;
 hf
 ht=subs(hf,{xbf,zbf,l1f,l2f,thetaf,xb_dotf,zb_dotf,l1_dotf,l2_dotf,theta_dotf},{xb,zb,l1,l2,theta,xb_dot,zb_dot,l1_dot,l2_dot,theta_dot});
@@ -207,7 +203,7 @@ Pt=subs(P,{xbf,zbf,l1f,l2f,thetaf,xb_dotf,zb_dotf,l1_dotf,l2_dotf,theta_dotf},{x
 
 %--------------------------------
 %% Without Ameid
-M_bar = Mf_invt*(Pt+ht);  %Withot Ameid
+%M_bar = Mf_invt*(Pt+ht);  %Withot Ameid
 %--------------------------------
 %% With Ameid 
 %AMEID dynamic
@@ -217,14 +213,14 @@ syms kF mp md La kv Ra
 syms iarf ialf xprf xplf xpr_dotf xpl_dotf
 syms iar(t) ial(t) xpr(t) xpl(t) xpr_dot(t) xpl_dot(t)     %xmeidt(t)=[ia(t) xp(t) xp_dot(t)]';
 %input
-syms Vr(t) Vl(t) dt
+syms Vr Vl dt
 
 xpr_dot(t)=diff(xpr,t);
 xpl_dot(t)=diff(xpl,t);
 xmeidrf = [iarf;xprf;xpr_dotf];
 xmeidlf = [ialf;xplf;xpl_dotf];
-xmeidrt = subs(xmeidrf,{iarf,xprf,xpr_dotf},{iar,xpr,xpr_dot});
-xmeidlt = subs(xmeidlf,{ialf,xplf,xpl_dotf},{ial,xpl,xpl_dot});
+xmeidrt = subs(xmeidrf,{iarf,xprf,xpr_dotf},{iar,xpr,xpr_dot}); % f(t)
+xmeidlt = subs(xmeidlf,{ialf,xplf,xpl_dotf},{ial,xpl,xpl_dot}); % f(t)
 %{
 %parameter values
 md=0.5;                %(kg)
@@ -247,6 +243,7 @@ Fmeidl = Cam*xmeidlf;
 dWr = (S+l1f)*cos(alpha);
 %Tr = (-W-dWr)*Fmeidr;
 hr = [sin(thetaf);-cos(thetaf);sym(0);sym(0);-W-dWr]*Fmeidr;
+hr
 hrt = subs(hr,{iarf, thetaf, l1f}, {iar, theta, l1});
 
 %% AMEID force matrix - left
@@ -255,6 +252,7 @@ hrt = subs(hr,{iarf, thetaf, l1f}, {iar, theta, l1});
 dWl = (S+l2f)*cos(alpha);
 %Tl = (W+dWl)*Fmeidl;
 hl = [sin(thetaf);-cos(thetaf);sym(0);sym(0);W+dWl]*Fmeidl;
+hl
 hlt = subs(hl,{ialf, thetaf, l2f},{ial, theta, l2});
 %--------------------------------
 M_bar_u=Mf_invt*(Pt+ht+hrt+hlt); %With AMEID   %dimension: 3x1
