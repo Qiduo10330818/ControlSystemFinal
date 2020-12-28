@@ -7,7 +7,8 @@
 
 clear;clc;close all;
 %% PID parameters setting-----The digital P-controller is implemented using the so-called velocity form.
-Kp=500;
+Kp = 500;
+Kd = 0.025;
 %% initialf states setting
 qi =[0 11 0.8 0.8 1.05];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
 % x z l1 l2 theta
@@ -102,11 +103,7 @@ count_l=0;
 count_r=0;
 tic;
 
-for i = 1:1:N
-    %if(qn(i, 4)>lss)
-    %    qn(i, 4)=lss;
-    %end
-    
+for i = 1:1:N  
     xbf = qn(i,1);
     zbf = qn(i,2);
     l1f = qn(i,3);
@@ -118,15 +115,6 @@ for i = 1:1:N
     l1_dotf = un(i,3);
     l2_dotf = un(i,4);
     theta_dotf = un(i,5);
-    
-    
-    %{
-q1n(i,:) = [ xbf,...
-             zbf - l1f-0.5];
-
-u1n(i,:) = [ xb_dotf ,...
-             zb_dotf - l1_dotf];
-    %}
     
     q1n(i,:) =...
         [xbf - cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) - l1f*cos(alpha)*cos(thetaf) + l1f*sin(alpha)*sin(thetaf)
@@ -144,24 +132,7 @@ u1n(i,:) = [ xb_dotf ,...
         [xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf)
         zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)
         ];
-    %{
-    gNb = qn(i,2);
-    gN1 = q1n(i,2);
-    gN2 = q2n(i,2);
-    
-    rNb = un(i,2);
-    rN1 = u1n(i,2);
-    rN2 = u2n(i,2);
-    
-    gTb = qn(i,1);
-    gT1 = q1n(i,1);
-    gT2 = q2n(i,1);
-    
-    rTb = un(i,1);
-    rT1 = u1n(i,1);
-    rT2 = u2n(i,1);
-        %}
-        % rke
+   
         Mn = [
             [                                                                                                                                                                                                                                                            m1 + m2 + mc,                                                                                                                                                                                                                                                                       0,                                                                                                                                                                                                                                                                                                                (m1*(2*sin(alpha)*sin(thetaf) - 2*cos(alpha)*cos(thetaf)))/2,                                                                                                                                                                                                                                                                                                                (m2*(2*sin(alpha)*sin(thetaf) + 2*cos(alpha)*cos(thetaf)))/2,                                                                                                                                                                                                                                                                (m1*(2*sin(thetaf)*(W/2 + S*cos(alpha)) - 2*cos(thetaf)*(H/2 - S*sin(alpha)) + 2*l1f*cos(alpha)*sin(thetaf) + 2*l1f*sin(alpha)*cos(thetaf)))/2 - (m2*(2*cos(thetaf)*(H/2 - S*sin(alpha)) + 2*sin(thetaf)*(W/2 + S*cos(alpha)) + 2*l2f*cos(alpha)*sin(thetaf) - 2*l2f*sin(alpha)*cos(thetaf)))/2]
             [                                                                                                                                                                                                                                                                       0,                                                                                                                                                                                                                                                            m1 + m2 + mc,                                                                                                                                                                                                                                                                                                               -(m1*(2*cos(alpha)*sin(thetaf) + 2*sin(alpha)*cos(thetaf)))/2,                                                                                                                                                                                                                                                                                                                (m2*(2*cos(alpha)*sin(thetaf) - 2*sin(alpha)*cos(thetaf)))/2,                                                                                                                                                                                                                                                                (m2*(2*cos(thetaf)*(W/2 + S*cos(alpha)) - 2*sin(thetaf)*(H/2 - S*sin(alpha)) + 2*l2f*cos(alpha)*cos(thetaf) + 2*l2f*sin(alpha)*sin(thetaf)))/2 - (m1*(2*cos(thetaf)*(W/2 + S*cos(alpha)) + 2*sin(thetaf)*(H/2 - S*sin(alpha)) + 2*l1f*cos(alpha)*cos(thetaf) - 2*l1f*sin(alpha)*sin(thetaf)))/2]
@@ -181,19 +152,7 @@ u1n(i,:) = [ xb_dotf ,...
             m2*(theta_dotf*cos(alpha)*cos(thetaf) + theta_dotf*sin(alpha)*sin(thetaf))*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)) - theta_dotf*(m2*(theta_dotf*cos(alpha)*cos(thetaf) + theta_dotf*sin(alpha)*sin(thetaf))*(cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) + l2f*cos(alpha)*cos(thetaf) + l2f*sin(alpha)*sin(thetaf)) + m2*(theta_dotf*cos(alpha)*sin(thetaf) - theta_dotf*sin(alpha)*cos(thetaf))*(cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf)) - m2*(cos(alpha)*sin(thetaf) - sin(alpha)*cos(thetaf))*(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf)) + m2*(sin(alpha)*sin(thetaf) + cos(alpha)*cos(thetaf))*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf))) - l2_dotf*(m2*(theta_dotf*cos(alpha)*cos(thetaf) + theta_dotf*sin(alpha)*sin(thetaf))*(cos(alpha)*sin(thetaf) - sin(alpha)*cos(thetaf)) - m2*(theta_dotf*cos(alpha)*sin(thetaf) - theta_dotf*sin(alpha)*cos(thetaf))*(sin(alpha)*sin(thetaf) + cos(alpha)*cos(thetaf))) - (k*(2*l2f - 2*lss))/2 - m2*(theta_dotf*cos(alpha)*sin(thetaf) - theta_dotf*sin(alpha)*cos(thetaf))*(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf)) - c*l2_dotf + m2*xb_dotf*(theta_dotf*cos(alpha)*sin(thetaf) - theta_dotf*sin(alpha)*cos(thetaf)) - m2*zb_dotf*(theta_dotf*cos(alpha)*cos(thetaf) + theta_dotf*sin(alpha)*sin(thetaf)) - g*m2*(cos(alpha)*sin(thetaf) - sin(alpha)*cos(thetaf))
             theta_dotf*(m1*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf))*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)) - m1*(sin(thetaf)*(W/2 + S*cos(alpha)) - cos(thetaf)*(H/2 - S*sin(alpha)) + l1f*cos(alpha)*sin(thetaf) + l1f*sin(alpha)*cos(thetaf))*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)) + m1*(cos(thetaf)*(W/2 + S*cos(alpha)) + sin(thetaf)*(H/2 - S*sin(alpha)) + l1f*cos(alpha)*cos(thetaf) - l1f*sin(alpha)*sin(thetaf))*(theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf)) - m2*(cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf))*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)) + m2*(cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) + l2f*cos(alpha)*cos(thetaf) + l2f*sin(alpha)*sin(thetaf))*(theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l2_dotf*cos(alpha)*cos(thetaf) - l2_dotf*sin(alpha)*sin(thetaf) + l2f*theta_dotf*cos(alpha)*sin(thetaf) - l2f*theta_dotf*sin(alpha)*cos(thetaf)) - m1*(cos(thetaf)*(W/2 + S*cos(alpha)) + sin(thetaf)*(H/2 - S*sin(alpha)) + l1f*cos(alpha)*cos(thetaf) - l1f*sin(alpha)*sin(thetaf))*(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf)) + m2*(cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) + l2f*cos(alpha)*cos(thetaf) + l2f*sin(alpha)*sin(thetaf))*(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf)) + m2*(cos(thetaf)*(H/2 - S*sin(alpha)) + sin(thetaf)*(W/2 + S*cos(alpha)) + l2f*cos(alpha)*sin(thetaf) - l2f*sin(alpha)*cos(thetaf))*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf))) - zb_dotf*(m1*(theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf)) - m2*(theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l2_dotf*cos(alpha)*cos(thetaf) - l2_dotf*sin(alpha)*sin(thetaf) + l2f*theta_dotf*cos(alpha)*sin(thetaf) - l2f*theta_dotf*sin(alpha)*cos(thetaf))) - l1_dotf*(m1*(cos(alpha)*sin(thetaf) + sin(alpha)*cos(thetaf))*(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf)) - m1*(sin(alpha)*sin(thetaf) - cos(alpha)*cos(thetaf))*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)) - m1*(cos(alpha)*sin(thetaf) + sin(alpha)*cos(thetaf))*(theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf)) + m1*(sin(alpha)*sin(thetaf) - cos(alpha)*cos(thetaf))*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf))) - xb_dotf*(m1*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf)) - m2*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf))) + l2_dotf*(m2*(cos(alpha)*sin(thetaf) - sin(alpha)*cos(thetaf))*(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf)) - m2*(sin(alpha)*sin(thetaf) + cos(alpha)*cos(thetaf))*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)) + m2*(sin(alpha)*sin(thetaf) + cos(alpha)*cos(thetaf))*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)) + m2*(cos(alpha)*sin(thetaf) - sin(alpha)*cos(thetaf))*(theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l2_dotf*cos(alpha)*cos(thetaf) - l2_dotf*sin(alpha)*sin(thetaf) + l2f*theta_dotf*cos(alpha)*sin(thetaf) - l2f*theta_dotf*sin(alpha)*cos(thetaf))) + g*m1*(cos(thetaf)*(W/2 + S*cos(alpha)) + sin(thetaf)*(H/2 - S*sin(alpha)) + l1f*cos(alpha)*cos(thetaf) - l1f*sin(alpha)*sin(thetaf)) - g*m2*(cos(thetaf)*(W/2 + S*cos(alpha)) - sin(thetaf)*(H/2 - S*sin(alpha)) + l2f*cos(alpha)*cos(thetaf) + l2f*sin(alpha)*sin(thetaf)) + m1*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf))*(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf)) - m2*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf))*(xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf)) - m2*(theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) + theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - l2_dotf*cos(alpha)*cos(thetaf) - l2_dotf*sin(alpha)*sin(thetaf) + l2f*theta_dotf*cos(alpha)*sin(thetaf) - l2f*theta_dotf*sin(alpha)*cos(thetaf))*(zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)) - m1*(theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - l1_dotf*cos(alpha)*cos(thetaf) + l1_dotf*sin(alpha)*sin(thetaf) + l1f*theta_dotf*cos(alpha)*sin(thetaf) + l1f*theta_dotf*sin(alpha)*cos(thetaf))*(theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - zb_dotf + theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l1_dotf*cos(alpha)*sin(thetaf) + l1_dotf*sin(alpha)*cos(thetaf) + l1f*theta_dotf*cos(alpha)*cos(thetaf) - l1f*theta_dotf*sin(alpha)*sin(thetaf))
             ];
-        %{
-LambdaN1 = kf*gN1*min(sign(gN1),0) - cf*rN1*min(sign(rN1),0)*min(sign(gN1),0);
-LambdaNb = kf*gNb*min(sign(gNb),0) - 10*cf*rNb*min(sign(rNb),0)*min(sign(gNb),0);
-LambdaN = [LambdaN1;LambdaNb];
-%
-LambdaT1 = -uk*LambdaN1*sign(rT1);
-LambdaTb = -uk*LambdaNb*sign(rTb);
-LambdaT = [LambdaT1;LambdaTb];
-%
-WN=[0 0;1 1;-1 0];
-WT=[1 1;0 0;0 0];
-P = WN*LambdaN+WT*LambdaT;
-            %}
+    
             
             P = ...
                 [
@@ -210,19 +169,14 @@ P = WN*LambdaN+WT*LambdaT;
                     xmr(i,2)=0;
                 end
                 xmr(i+1,:) = ((Aam*dt+eye(3))*(xmr(i,:))')';
-                %iarf = xmr(i+1, 1);
-                %{
-   Fx=0;
-   Fz=0;
-   Fl=0;
-                %}
+              
                 
             elseif Launch_r == true
                 count_r = count_r + 1;
                 %%%% Control Law %%%%
                 %ek(i+2) = un(i,2);
-                ekr(i+2) = max(un(i,5),0);
-                Vr(i+1) = Vr(i) + Kp*(ekr(i+2)-ekr(i+1));
+                ekr(i+2) = max(qn(i,5),0);
+                Vr(i+1) = Vr(i) + Kp*(ekr(i+2)-ekr(i+1)) + Kd*(ekr(i+2)-ekr(i+1))/dt;
                 %%%%
                 
                 if xmr(i,2)<0
@@ -230,13 +184,7 @@ P = WN*LambdaN+WT*LambdaT;
                 end
                 
                 xmr(i+1,:) = ((Aam*dt+eye(3))*(xmr(i,:))'+Bam*dt*Vr(i+1))';
-                %iarf = xmr(i+1, 1);
                 
-                %{
-   Fx=0;
-   Fz=-Cam*(xmr(i,:))';
-   Fl=0;
-                %}
             end
             if Launch_l == false
                 if xml(i,2)<0
@@ -244,18 +192,13 @@ P = WN*LambdaN+WT*LambdaT;
                 end
                 
                 xml(i+1,:) = ((Aam*dt+eye(3))*(xml(i,:))')';
-                %ialf = xml(i+1, 1);
-                %{
-   Fx=0;
-   Fz=0;
-   Fl=0;
-                %}
+              
             elseif Launch_l == true
                 count_l = count_l + 1;
                 %%%% Control Law %%%%
                 %ek(i+2) = un(i,2);
-                ekl(i+2) = max(-un(i,5),0);
-                Vl(i+1) = Vl(i) + Kp*(ekl(i+2)-ekl(i+1));
+                ekl(i+2) = max(-qn(i,5),0);
+                Vl(i+1) = Vl(i) + Kp*(ekl(i+2)-ekl(i+1)) + Kd*(ekl(i+2)-ekl(i+1))/dt;
                 %%%%
                 
                 if xml(i,2)<0
@@ -263,13 +206,7 @@ P = WN*LambdaN+WT*LambdaT;
                 end
                 
                 xml(i+1,:) = ((Aam*dt+eye(3))*(xml(i,:))'+Bam*dt*Vl(i+1))';
-                %ialf = xml(i+1, 1);
-                
-                %{
-   Fx=0;
-   Fz=-Cam*(xml(i,:))';
-   Fl=0;
-                %}
+              
             end
             %-------L_stroke constraint------
             if (xmr(i,2) >= L_stroke) || (num_r >= 1)
@@ -417,6 +354,7 @@ xlabel('Time [s]','Interpreter','Latex');
 ylabel('Velocity Response','Interpreter','Latex');
 sgtitle(['\bf Lander Landing status : ',flag],'FontSize',10,'Interpreter','Latex');
 set(findall(gcf,'type','line'),'linewidth',2);
+saveas(gcf, sprintf("Kp= %d Kd=%f.png", Kp, Kd));
 
 figure(2);
 %stairs(t,V);hold on;
@@ -456,76 +394,3 @@ for i = 1:40:N
     q2z = q2n(i, 2);
     animation(x,z,theta,q1x,q1z,q2x,q2z);
 end
-%{
-%--------------RGB color-----------------
-rgb =[0, 0.4470, 0.7410;...     %new_blue
-      0.8500, 0.3250, 0.0980;...%orange
-      0.9290, 0.6940, 0.1250;...%soil yellow
-      0.4940, 0.1840, 0.5560;...%purple
-      0.4660, 0.6740, 0.1880;...%lightly green
-      0.3010, 0.7450, 0.9330;...%lightly blue
-      0.6350, 0.0780, 0.1840];  %Brown
-%----------------------------------------
-
-%----------------------------------------
-figure(4);
-axis ([-2 2 -0.1 7]);
-axis manual;
-
-for n = 1:40:N
-    
-    qb=[qn(n,1);qn(n,2)];
-    
-    r1 = [-W/2;H/2];
-    r2 = [W/2;H/2];
-    r3 = [-W/2;-H/2];
-    r4 = [W/2;-H/2];
-    
-    q1 = qb + r1;
-    q2 = qb + r2;
-    q3 = qb + r3;
-    q4 = qb + r4;
-    
-    plot(qn(n,1),qn(n,2),'ro');
-    hold on;
-    plot(q1n(n,1),q1n(n,2),'bs');
-    %--------------Lander body-------------
-    plot([q1(1) q2(1)],[q1(2) q2(2)],'color',rgb(7,:));
-    plot([q2(1) q4(1)],[q2(2) q4(2)],'color',rgb(7,:));
-    plot([q4(1) q3(1)],[q4(2) q3(2)],'color',rgb(7,:));
-    plot([q3(1) q1(1)],[q3(2) q1(2)],'color',rgb(7,:));
-    %--------------------------------------
-    plot([q1n(n,1) qn(n,1)],[q1n(n,2) qn(n,2)],'k:');
-    %--------------------------------------
-    floorx = [-2 2];
-    floorz = [0 0];
-    line(floorx,floorz,'Color','green','LineStyle','--');
-    
-    xlabel('x [m]','Interpreter','Latex');
-    ylabel('z [m]','Interpreter','Latex');
-     
-    
-    axis ([-2 2 -0.1 7]);
-    pbaspect([40 71 1]);
-    grid on;
-    grid minor;
-    title('2D animation','Interpreter','Latex');
-    set(findall(gcf,'type','line'),'linewidth',2);
-    drawnow
-    
-    if n==1
-        pause(2);
-    end
-%       % Capture the plot as an image
-%       frame = getframe(h);
-%       im = frame2im(frame);
-%       [imind,cm] = rgb2ind(im,256);
-      % Write to the GIF File
-%       if n == 1
-%           imwrite(imind,cm,filename,'gif', 'Loopcount',inf);
-%       else
-%           imwrite(imind,cm,filename,'gif','WriteMode','append');
-%       end
-hold off;
-end
-%}
