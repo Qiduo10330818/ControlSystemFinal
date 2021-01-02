@@ -5,14 +5,14 @@
 %All rights reserved.
 %----------------------------------------------------------------------------------
 
-clear;clc;close all;
+function []=main_function(qi, ui, Kp, Kd, ani)
 %% PID parameters setting-----The digital P-controller is implemented using the so-called velocity form.
-Kp = 500;
-Kd = 0.025;
+%Kp = 500;
+%Kd = 0.025;
 %% initialf states setting
-qi =[0 11 0.8 0.8 1.05];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
+%qi =[0 11 0.8 0.8 1.05];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
 % x z l1 l2 theta
-ui =[0 0 0 0 0];          %I.C. of generalized velocities:  ui = [x_dot(to) z_dot(to) l1_dot(to)];
+%ui =[0 0 0 0 0];          %I.C. of generalized velocities:  ui = [x_dot(to) z_dot(to) l1_dot(to)];
 xmi  =[0 0 0];        %I.C. of AMEID states: xmi = [
 lenq=length(qi);
 %% Parameters setting
@@ -101,7 +101,7 @@ num_r = 0;
 %count=0; % launch time
 count_l=0;
 count_r=0;
-tic;
+%tic;
 
 for i = 1:1:N  
     xbf = qn(i,1);
@@ -272,7 +272,7 @@ u1n(i+1,:) = [ xb_dotf ,...
             if (un(i+1,2)*un(i,2)<0) && (qn(i+1, 5)>=0)
                 if (xmr(i,2)<L_stroke)
                     Launch_r = true;
-                    fprintf("Launch r\n");
+                    %fprintf("Launch r\n");
                     
                 else
                     Launch_r = false;
@@ -283,7 +283,7 @@ u1n(i+1,:) = [ xb_dotf ,...
             if (un(i+1,2)*un(i,2)<0) && (qn(i+1, 5)<=0)
                 if (xml(i,2)<L_stroke)
                     Launch_l = true;
-                    fprintf("Launch l\n");
+                    %fprintf("Launch l\n");
                     
                 else
                     Launch_l = false;
@@ -302,14 +302,14 @@ xml(end,2) = xml(end-1,2);
 Fmax_1=max(F_impactn_1);
 Fmax_2=max(F_impactn_2);
 
-toc;
+%toc;
 
 if abs(un(end,2))<=1e-2
-    flag='stable'
+    flag='stable';
 else
-    flag='unstable'
+    flag='unstable';
 end
-
+fprintf("Kp = %d Kd = %.4f %s\n", Kp, Kd, flag);
 
 
 
@@ -384,6 +384,7 @@ set(findall(gcf,'type','line'),'linewidth',2);
 
 
 %% -------------Animation----------------
+if ani
 for i = 1:40:N
     x = qn(i, 1);
     z = qn(i, 2);
@@ -393,4 +394,7 @@ for i = 1:40:N
     q2x = q2n(i, 1);
     q2z = q2n(i, 2);
     animation(x,z,theta,q1x,q1z,q2x,q2z);
+end
+end
+close all;
 end
