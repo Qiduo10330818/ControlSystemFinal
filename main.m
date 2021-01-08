@@ -10,7 +10,7 @@ clear;clc;close all;
 Kp = 500;
 Kd = 0.025;
 %% initialf states setting
-qi =[0 11 0.8 0.8 1.05];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
+qi =[0 11 0.8 0.8 1.1];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
 % x z l1 l2 theta
 ui =[0 0 0 0 0];          %I.C. of generalized velocities:  ui = [x_dot(to) z_dot(to) l1_dot(to)];
 xmi  =[0 0 0];        %I.C. of AMEID states: xmi = [
@@ -175,7 +175,8 @@ for i = 1:1:N
                 count_r = count_r + 1;
                 %%%% Control Law %%%%
                 %ek(i+2) = un(i,2);
-                ekr(i+2) = max(qn(i,5),0);
+                %ekr(i+2) = max(qn(i,5),0);
+                ekr(i+2) = qn(i,5);
                 Vr(i+1) = Vr(i) + Kp*(ekr(i+2)-ekr(i+1)) + Kd*(ekr(i+2)-ekr(i+1))/dt;
                 %%%%
                 
@@ -197,7 +198,8 @@ for i = 1:1:N
                 count_l = count_l + 1;
                 %%%% Control Law %%%%
                 %ek(i+2) = un(i,2);
-                ekl(i+2) = max(-qn(i,5),0);
+                %ekl(i+2) = max(-qn(i,5),0);
+                ekl(i+2) = -qn(i,5);
                 Vl(i+1) = Vl(i) + Kp*(ekl(i+2)-ekl(i+1)) + Kd*(ekl(i+2)-ekl(i+1))/dt;
                 %%%%
                 
@@ -304,7 +306,7 @@ Fmax_2=max(F_impactn_2);
 
 toc;
 
-if abs(un(end,2))<=1e-2
+if abs(un(end,2))<=1e-2 && min(qn(:, 2)>H/2)
     flag='stable'
 else
     flag='unstable'

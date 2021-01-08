@@ -1,0 +1,193 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%2345678901234567890123456789012345678901234567890123456789012345678901234567890
+%        1         2         3         4         5         6         7         8
+
+\documentclass[letterpaper, 10 pt, conference]{ieeetran}   
+
+
+
+                                                          
+%images
+\usepackage{amsmath}
+\usepackage{verbatim}
+%\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{wrapfig}
+\graphicspath{{images/}}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+\usepackage{adjustbox}
+\usepackage{multirow}
+\newtheorem{rem}{Remark}
+\newtheorem{assumption}{Assumption}
+\newtheorem{thm}{Theorem}
+\newtheorem{pf}{Proof}
+\newtheorem{lemma}{Lemma}
+\usepackage{hyperref} 
+%block diagram
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows}
+\pagestyle{empty}
+%block diagram layers
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{foreground}
+\pgfsetlayers{background,main,foreground}
+\tikzstyle{int}=[draw, fill=blue!20, minimum size=2em]
+\tikzstyle{init} = [pin edge={to-,thin,black}]
+%block diagram
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows}
+\pagestyle{empty}
+\usetikzlibrary{calc,arrows}
+\IEEEoverridecommandlockouts
+
+
+
+
+
+
+
+
+
+\title{\LARGE \bf
+Title
+}
+
+
+\author{A, B, and Cheng-Wei Chen % <-this % stops a space
+\thanks{This work was financially supported from the Young Scholar Fellowship Program by Ministry of Science and Technology (MOST) in Taiwan, under Grant MOST 107-2636-E-002-008.}
+\thanks{A is with Electrical Engineering, National Taiwan University, Taipei, Taiwan
+        {\tt\small a@ntu.edu.tw}}%
+\thanks{B is with Electrical Engineering, National Taiwan University, Taipei, Taiwan
+        {\tt\small b@ntu.edu.tw}}%
+\thanks{Cheng-Wei Chen is with Electrical Engineering, National Taiwan University, Taipei, Taiwan
+        {\tt\small cwchenee@ntu.edu.tw}}%
+}
+
+
+\begin{document}
+%\pagestyle{empty}
+
+%block diagram
+\tikzstyle{block} = [draw, fill=blue!20, rectangle, 
+    minimum height=3em, minimum width=3em]
+\tikzstyle{sum} = [draw, fill=blue!20, circle, node distance=1cm]
+\tikzstyle{input} = [coordinate]
+\tikzstyle{output} = [coordinate]
+\tikzstyle{pinstyle} = [pin edge={to-,thin,black}]
+
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+\maketitle
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% citation label: \cite{XXX}
+% refer Fig or Table: \ref{XXX}
+% add vertical space: \vspace{-5 mm}
+% paragraph align to the most left edge: \noindent
+
+% figure
+%% \begin{figure}[h]
+%% \begin{center}
+%% \includegraphics[width=3.5cm]{DualStageScheme}
+%% \caption{Dual-stage system scheme.}
+%% \label{DualStageScheme}
+%% \end{center}
+%% \end{figure}
+
+% subfigures
+%% \begin{figure}[H]
+%% 	\begin{center}
+%% 		\subfloat[Master-slave configuration]{\adjincludegraphics[trim=0cm 0cm 0cm 0cm,  clip=true,width=8.5cm]{DualStageTPRRC2}}\\
+%% 		\vspace{0 mm}
+%% 		\subfloat[TPRRC]{\adjincludegraphics[trim=0cm 0cm 0cm 0cm, clip=true,width=5cm]{TPRRC}}\\
+%% 		\caption{Block diagram of the master-slave dual-stage system using the two parameter robust repetitive control (TPRRC).}
+%% 		\label{DualStageTPRRC}
+%% 	\end{center}
+%% \end{figure} 
+
+% equation
+%% \begin{equation}
+%% P_{i}=\frac{C_{stab[i]}G_{i}}{1+C_{stab[i]}G_{i}},  i=1,2
+%% \label{ClosedLoopplant}
+%% \end{equation}
+
+% multiple equations
+%% \begin{align}
+%% \mathbf{r}&\equiv\begin{bmatrix}
+%% \mathbf{y_i}&\equiv\begin{bmatrix}
+%% \mathit{y_i}(t)  & \mathit{y_i}(t+\Delta t)   &  ...  & \mathit{y_i}(t+(n-1)\Delta t) 
+%% \end{bmatrix}^T \label{OutputVec}\\
+%% \mathbf{e_i}&\equiv\begin{bmatrix}
+%% \mathit{e_i}(t)  & \mathit{e_i}(t+\Delta t)   &  ...  & \mathit{e_i}(t+(n-1)\Delta t) 
+%% \end{bmatrix}^T \label{ErrVec}
+%% \end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+Here is the abstract    
+
+
+\end{abstract}
+
+%=================================================================% 
+%===========================SEC 1=================================% 
+%===========================INTRO=================================% 
+%=================================================================% 
+
+\section{Introduction}
+\label{sec:intro}
+
+Here is the introduction \cite{chen2020iterative}, as shown in Eq. \ref{eq:Ztransform}.
+
+\begin{equation}
+G(z):=\sum_{k=-N/2}^{N/2}g(k)z^{-k}
+\label{eq:Ztransform}
+\end{equation}
+
+
+The main contributions of this paper are: 
+
+\begin{enumerate}
+	\item one;
+	\item two;
+	\item threes.
+\end{enumerate}
+
+\begin{figure}[h]
+ 	\begin{center}
+ 	\includegraphics[width=8cm]{ILC.eps}
+ 	\caption{The generic ILC scheme.}
+ 	\label{fig:ILC}
+ 	\end{center}
+\end{figure}
+
+
+
+ 
+%=================================================================% 
+%===========================SEC 5=================================% 
+%===========================CONCLUSION============================% 
+%=================================================================% 
+ 
+\section{Conclusion}
+\label{sec:conclu}  
+Here is the conclusion.
+
+
+%=================================================================%  
+%==========================REFERENCE==============================% 
+%=================================================================% 
+\bibliographystyle{IEEEtr}
+\bibliography{refbib}
+
+
+
+
+%=================================================================% 
+\end{document}

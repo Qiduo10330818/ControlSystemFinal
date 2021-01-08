@@ -175,7 +175,8 @@ for i = 1:1:N
                 count_r = count_r + 1;
                 %%%% Control Law %%%%
                 %ek(i+2) = un(i,2);
-                ekr(i+2) = max(qn(i,5),0);
+                %ekr(i+2) = max(qn(i,5),0);
+                ekr(i+2) = qn(i,5);
                 Vr(i+1) = Vr(i) + Kp*(ekr(i+2)-ekr(i+1)) + Kd*(ekr(i+2)-ekr(i+1))/dt;
                 %%%%
                 
@@ -197,7 +198,8 @@ for i = 1:1:N
                 count_l = count_l + 1;
                 %%%% Control Law %%%%
                 %ek(i+2) = un(i,2);
-                ekl(i+2) = max(-qn(i,5),0);
+                %ekl(i+2) = max(-qn(i,5),0);
+                ekl(i+2) = -qn(i,5);
                 Vl(i+1) = Vl(i) + Kp*(ekl(i+2)-ekl(i+1)) + Kd*(ekl(i+2)-ekl(i+1))/dt;
                 %%%%
                 
