@@ -176,8 +176,12 @@ for i = 1:1:N
                 %%%% Control Law %%%%
                 %ek(i+2) = un(i,2);
                 %ekr(i+2) = max(qn(i,5),0);
+                %if abs(qn(i, 5)-0.815)<0.006
+                %    Vr(i+1) = Vr(i);
+                %else
                 ekr(i+2) = qn(i,5);
                 Vr(i+1) = Vr(i) + Kp*(ekr(i+2)-ekr(i+1)) + Kd*(ekr(i+2)-ekr(i+1))/dt;
+                %end
                 %%%%
                 
                 if xmr(i,2)<0
@@ -199,8 +203,12 @@ for i = 1:1:N
                 %%%% Control Law %%%%
                 %ek(i+2) = un(i,2);
                 %ekl(i+2) = max(-qn(i,5),0);
+                %if abs(qn(i, 5)-0.815)<0.006
+                %    Vl(i+1) = Vl(i);
+                %else
                 ekl(i+2) = -qn(i,5);
                 Vl(i+1) = Vl(i) + Kp*(ekl(i+2)-ekl(i+1)) + Kd*(ekl(i+2)-ekl(i+1))/dt;
+                %end
                 %%%%
                 
                 if xml(i,2)<0
@@ -269,10 +277,11 @@ u1n(i+1,:) = [ xb_dotf ,...
                 [xb_dotf - theta_dotf*cos(thetaf)*(H/2 - S*sin(alpha)) - theta_dotf*sin(thetaf)*(W/2 + S*cos(alpha)) + l2_dotf*cos(alpha)*cos(thetaf) + l2_dotf*sin(alpha)*sin(thetaf) - l2f*theta_dotf*cos(alpha)*sin(thetaf) + l2f*theta_dotf*sin(alpha)*cos(thetaf)
                 zb_dotf + theta_dotf*cos(thetaf)*(W/2 + S*cos(alpha)) - theta_dotf*sin(thetaf)*(H/2 - S*sin(alpha)) + l2_dotf*cos(alpha)*sin(thetaf) - l2_dotf*sin(alpha)*cos(thetaf) + l2f*theta_dotf*cos(alpha)*cos(thetaf) + l2f*theta_dotf*sin(alpha)*sin(thetaf)
                 ];
-            %-----Does Lander contact to the ground?---------
+            %-----Does Lander contact the ground?---------
             %if (u1n(i+1,2)*u1n(i,2)<0)
             if (un(i+1,2)*un(i,2)<0) && (qn(i+1, 5)>=0)
                 if (xmr(i,2)<L_stroke)
+                %if (xmr(i,2)<L_stroke) && abs(abs(qn(i, 5))-0.815)>0.03 && abs(abs(qn(i+1, 5))-0.815)>0.03
                     Launch_r = true;
                     %fprintf("Launch r\n");
                     
@@ -284,6 +293,7 @@ u1n(i+1,:) = [ xb_dotf ,...
             %if (u2n(i+1,2)*u2n(i,2)<0)
             if (un(i+1,2)*un(i,2)<0) && (qn(i+1, 5)<=0)
                 if (xml(i,2)<L_stroke)
+                %if (xml(i,2)<L_stroke) && abs(abs(qn(i, 5))-0.815)>0.03 && abs(abs(qn(i+1, 5))-0.815)>0.03
                     Launch_l = true;
                     %fprintf("Launch l\n");
                     
@@ -291,7 +301,7 @@ u1n(i+1,:) = [ xb_dotf ,...
                     Launch_l = false;
                 end
             end
-            
+            %abs(abs(qn(i, 5))-0.815)
             
             F_impactn(i) = -k*(qn(i,3)-lss)-c*un(i,3);
             F_impactn_1(i) = -k*(qn(i,3)-lss)-c*un(i,3);
@@ -374,7 +384,9 @@ xlabel('Time [s]','Interpreter','Latex');
 ylabel('Voltage','Interpreter','Latex');
 title('Control Effort','Interpreter','Latex');
 set(findall(gcf,'type','stair'),'linewidth',2);
-
+if sv
+saveas(gcf, sprintf("images/%s_ControlEffort_Kp_%d_Kd_%.4f.png", datestr(now, 'mmdd_HHMMSSFFF'), Kp, Kd));
+end
 figure(3);
 %plot(t,xm(:,2));
 plot(t,xml(:,2));hold on; % xp, extension of leg
