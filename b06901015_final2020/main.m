@@ -10,7 +10,7 @@ clear;clc;close all;
 Kp = 1000;
 Kd = 0;
 %% initialf states setting
-qi =[0 11 0.8 0.8 1.1];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
+qi =[0 11 0.8 0.8 -1.1];        %I.C. of generalized coordinates: qi = [x(to) z(to) l1(to)];
 % x z l1 l2 theta
 ui =[0 0 0 0 0];          %I.C. of generalized velocities:  ui = [x_dot(to) z_dot(to) l1_dot(to)];
 xmi  =[0 0 0];        %I.C. of AMEID states: xmi = [
